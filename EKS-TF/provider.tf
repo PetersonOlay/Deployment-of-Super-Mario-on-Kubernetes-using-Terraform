@@ -15,7 +15,7 @@ terraform {
 
 provider "aws" {
   region                   = var.aws_region
-  profile                  = "previsetech"
+  profile                  = "previse"
   default_tags {
     tags = {
       Project     = var.project_name

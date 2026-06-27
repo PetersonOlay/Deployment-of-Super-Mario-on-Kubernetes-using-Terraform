@@ -13,7 +13,7 @@ variable "aws_region" {
 variable "aws_profile" {
   description = "AWS CLI profile to use"
   type        = string
-  default     = "previsetech"
+  default     = "previse"
 }
 
 variable "environment" {
