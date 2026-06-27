@@ -94,6 +94,34 @@ resource "aws_eks_cluster" "eks_cluster" {
   }
 }
 
+resource "kubernetes_config_map_v1_data" "aws_auth" {
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  force = true
+
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = aws_iam_role.eks_node_group_role.arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      }
+    ])
+    mapUsers = yamlencode([
+      {
+        userarn  = data.aws_caller_identity.current.arn
+        username = "admin"
+        groups   = ["system:masters"]
+      }
+    ])
+  }
+
+  depends_on = [aws_eks_cluster.eks_cluster]
+}
+
 resource "aws_eks_access_entry" "admin" {
   cluster_name  = aws_eks_cluster.eks_cluster.name
   principal_arn = data.aws_caller_identity.current.arn
