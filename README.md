@@ -30,6 +30,11 @@ This project provisions an **EKS cluster** on AWS and deploys the **Super Mario 
 
 ```bash
 📂 DEPLOYMENT-OF-SUPER-MARIO
+├── 📂 bootstrap                       # Run once to create S3 bucket + IAM policy
+│   ├── main.tf                        # S3 bucket, versioning, encryption, IAM policy
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── terraform.tfvars
 ├── 📂 EKS-TF                          # Terraform configuration
 │   ├── backend.tf                     # S3 backend with native use_lockfile locking
 │   ├── provider.tf                    # AWS/Kubernetes provider configuration
@@ -86,7 +91,33 @@ The project supports three environments, each with its own VPC CIDR space and si
 | stg | EKS_MARIO_STG | 10.20.0.0/16 | t3.medium | 1–3 |
 | prd | EKS_MARIO | 10.30.0.0/16 | t3.medium | 1–4 |
 
-### **2️⃣ Initialize & Apply Terraform**  
+### **2️⃣ Bootstrap — Create S3 State Bucket (first-time only)**
+
+Run this **once** before the main Terraform deployment to create the S3 bucket and IAM policy used by the backend:
+
+```bash
+cd bootstrap
+terraform init
+terraform apply -auto-approve
+```
+
+After apply, note the `terraform_s3_backend_policy_arn` output and attach it to the IAM user/role used by the `previsetech` AWS profile:
+
+```bash
+# If using an IAM user:
+aws iam attach-user-policy \
+  --user-name <your-iam-user> \
+  --policy-arn <terraform_s3_backend_policy_arn output> \
+  --profile previsetech
+
+# If using an IAM role:
+aws iam attach-role-policy \
+  --role-name <your-iam-role> \
+  --policy-arn <terraform_s3_backend_policy_arn output> \
+  --profile previsetech
+```
+
+### **3️⃣ Initialize & Apply Terraform**  
 
 ```bash
 cd EKS-TF
@@ -106,7 +137,7 @@ terraform plan  -var-file=envs/prd.tfvars
 terraform apply -var-file=envs/prd.tfvars -auto-approve
 ```
 
-### **3️⃣ Configure Kubernetes Context**  
+### **4️⃣ Configure Kubernetes Context**  
 
 ```bash
 aws eks update-kubeconfig --name EKS_MARIO --region us-east-1
@@ -114,7 +145,7 @@ aws eks update-kubeconfig --name EKS_MARIO --region us-east-1
 # For stg: --name EKS_MARIO_STG
 ```
 
-### **4️⃣ Deploy Super Mario Application**  
+### **5️⃣ Deploy Super Mario Application**  
 
 Apply all core manifests at once:
 
@@ -133,7 +164,7 @@ kubectl apply -f k8s/network-policy.yaml
 kubectl apply -f k8s/service-monitor.yaml
 ```
 
-### **5️⃣ Access the Application**  
+### **6️⃣ Access the Application**  
 
 Once deployed, get the external LoadBalancer URL:  
 
@@ -143,7 +174,7 @@ kubectl get services mario-service
 
 Access **Super Mario** in your browser using the displayed URL.
 
-### **6️⃣ Monitor the Deployment**  
+### **7️⃣ Monitor the Deployment**  
 
 ```bash
 # Check deployment status
@@ -212,6 +243,7 @@ kubectl describe hpa mario-hpa
 - **Backend**: S3 (`mario12bucket`, `eks/terraform.tfstate`)
 - **Locking**: S3 native `use_lockfile = true` (Terraform 1.10+)
 - **Encryption**: AES-256 server-side encryption
+- **Bucket provisioning**: managed by `bootstrap/` (run once before `EKS-TF/`)
 
 ---
 

@@ -1,0 +1,5 @@
+bucket_name  = "mario12bucket"
+aws_region   = "us-east-1"
+aws_profile  = "previsetech"
+environment  = "shared"
+project_name = "Super Mario EKS Deployment"
