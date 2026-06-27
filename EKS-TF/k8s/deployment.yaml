@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mario-deployment
+  namespace: previselab
   labels:
     app: mario
     version: v1

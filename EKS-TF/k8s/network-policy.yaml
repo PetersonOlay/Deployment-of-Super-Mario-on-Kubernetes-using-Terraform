@@ -2,6 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: mario-network-policy
+  namespace: previselab
   labels:
     app: mario
   annotations:
@@ -17,7 +18,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: default
+          name: previselab
     - podSelector:
         matchLabels:
           app: mario
@@ -28,7 +29,7 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: default
+          name: previselab
     - podSelector:
         matchLabels:
           app: mario
