@@ -31,8 +31,6 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: false
-        runAsUser: 1000
-        fsGroup: 2000
       containers:
       - name: mario-container
         image: sevenajay/mario:latest
@@ -84,9 +82,14 @@ spec:
           capabilities:
             drop:
             - ALL
+            add:
+            - NET_BIND_SERVICE
         env:
         - name: NODE_ENV
-          value: "production"
+          valueFrom:
+            configMapKeyRef:
+              name: mario-config
+              key: NODE_ENV
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst

@@ -149,10 +149,17 @@ aws eks update-kubeconfig --name EKS_MARIO --region us-east-1 --profile previse
 
 ### **5️⃣ Deploy Super Mario Application**  
 
-Apply the manifests in order:
+Apply the manifests in order. Apply the environment-specific ConfigMap first so `NODE_ENV` is set correctly before the pods start:
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
+
+# Apply the ConfigMap for your target environment (sets NODE_ENV dynamically)
+kubectl apply -f k8s/envs/dev-configmap.yaml   # development
+# kubectl apply -f k8s/envs/stg-configmap.yaml # staging
+# kubectl apply -f k8s/envs/prd-configmap.yaml # production
+
+kubectl apply -f k8s/configmap.yaml            # only needed if skipping env override above
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/horizontal-pod-autoscaler.yaml
