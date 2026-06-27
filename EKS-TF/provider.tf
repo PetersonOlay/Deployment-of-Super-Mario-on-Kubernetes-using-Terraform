@@ -15,7 +15,6 @@ terraform {
 
 provider "aws" {
   region                   = var.aws_region
-  shared_credentials_files = ["~/.aws/credentials"]
   profile                  = "previsetech"
   default_tags {
     tags = {
