@@ -6,4 +6,4 @@ metadata:
   labels:
     app: mario
 data:
-  NODE_ENV: "development"
+  NODE_ENV: "develop"
