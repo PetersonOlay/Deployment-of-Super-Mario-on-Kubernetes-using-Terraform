@@ -238,6 +238,97 @@ terraform destroy -var-file=envs/dev.tfvars
 
 ---
 
+## **🔍 Troubleshooting**
+
+### IAM principal doesn't have access to Kubernetes objects
+
+```
+Your current IAM principal doesn't have access to Kubernetes objects on this cluster.
+This might be due to the current principal not having an IAM access entry
+with permissions to access the cluster.
+```
+
+**Cause:** The kubeconfig was generated without the `--profile` flag, so kubectl authenticates as a different IAM identity than the one that created the cluster.
+
+**Fix:** Regenerate the kubeconfig with the correct profile:
+
+```bash
+aws eks update-kubeconfig --name EKS_MARIO_DEV --region us-east-1 --profile previse
+# Verify access
+kubectl get nodes
+```
+
+If the error persists, the IAM principal needs an EKS access entry. The Terraform EKS module already creates one automatically for the caller identity via `aws_eks_access_entry`. Run `terraform apply` again to ensure it's been applied.
+
+---
+
+### S3 backend 403 Forbidden on terraform init
+
+```
+Error refreshing state: Unable to access object "eks/terraform.tfstate"
+in S3 bucket: api error Forbidden
+```
+
+**Cause:** The S3 bucket doesn't exist or the IAM user lacks bucket permissions.
+
+**Fix:** Run the bootstrap workspace first:
+
+```bash
+cd bootstrap
+terraform init && terraform apply -auto-approve
+# Attach the output policy ARN to your IAM user
+aws iam attach-user-policy --user-name <iam-user> \
+  --policy-arn <terraform_s3_backend_policy_arn> --profile previse
+```
+
+---
+
+### EKS node group error: KeyPair not found
+
+```
+InvalidParameterException: KeyPair eks-key not found
+```
+
+**Cause:** `ssh_key_name` is set to a key pair that doesn't exist in AWS.
+
+**Fix:** Set `ssh_key_name = null` in the relevant `envs/*.tfvars` file to disable SSH (nodes are accessible via SSM Session Manager). To enable SSH, create the key pair in EC2 first.
+
+---
+
+### CrashLoopBackOff — nginx Permission denied
+
+```
+mkdir() "/var/cache/nginx/client_temp" failed (13: Permission denied)
+chown("/var/cache/nginx/client_temp", 101) failed (1: Operation not permitted)
+setgid(101) failed (1: Operation not permitted)
+```
+
+**Cause:** The `sevenajay/mario` image runs nginx, which requires specific Linux capabilities that were dropped by the security context.
+
+**Fix:** The deployment security context is already configured with the required capabilities (`NET_BIND_SERVICE`, `CHOWN`, `SETGID`, `SETUID`) and `runAsUser: 0`. If you see this error, ensure you are running the latest version of `deployment.yaml`.
+
+---
+
+### ServiceMonitor CRD not found
+
+```
+no matches for kind "ServiceMonitor" in version "monitoring.coreos.com/v1"
+```
+
+**Cause:** The Prometheus Operator is not installed — it provides the `ServiceMonitor` CRD.
+
+**Fix:** Install the Prometheus Operator first, then apply the manifest:
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  -n monitoring --create-namespace
+kubectl apply -f k8s/service-monitor.yaml
+```
+
+---
+
 ## **🎯 Project Highlights**
 
 - **AWS EKS v1.36**: Managed Kubernetes with `API_AND_CONFIG_MAP` dual authentication
