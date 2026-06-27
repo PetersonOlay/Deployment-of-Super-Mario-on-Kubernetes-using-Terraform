@@ -202,12 +202,9 @@ kubectl describe hpa mario-hpa
 > `DependencyViolation` error.
 
 ```bash
-# Step 1 — remove LoadBalancer services so AWS cleans up the ELB and its ENIs
 kubectl delete svc --all -n default
-
-# Step 2 — wait ~30s for the ELB to fully drain and its ENIs to be released
-# Step 3 — then destroy the Terraform-managed infrastructure
-terraform destroy -var-file=envs/dev.tfvars   # or stg / prd
+# wait ~30s for the ELB to drain, then:
+terraform destroy -var-file=envs/dev.tfvars
 ```
 
 If you already hit the `DependencyViolation` error, manually detach and delete the orphaned
