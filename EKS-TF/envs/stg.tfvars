@@ -4,7 +4,7 @@
 environment        = "stg"
 cluster_name       = "EKS_MARIO_STG"
 node_group_name    = "Node-mario-stg"
-ssh_key_name       = "eks-key-stg"
+ssh_key_name       = null  # set to an EC2 key pair name to enable SSH; null uses SSM
 
 # Medium sizing — mirrors production topology at reduced scale
 instance_types     = ["t3.medium"]

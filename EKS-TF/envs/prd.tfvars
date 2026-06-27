@@ -4,7 +4,7 @@
 environment        = "prd"
 cluster_name       = "EKS_MARIO"
 node_group_name    = "Node-mario"
-ssh_key_name       = "eks-key"
+ssh_key_name       = null  # set to an EC2 key pair name to enable SSH; null uses SSM
 
 # Standard production sizing
 instance_types     = ["t3.medium"]

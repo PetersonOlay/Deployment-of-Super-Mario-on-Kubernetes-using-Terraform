@@ -14,7 +14,7 @@ min_size        = 1
 disk_size       = 30
 
 # Security Configuration
-ssh_key_name    = "eks-key"
+ssh_key_name    = null  # set to an EC2 key pair name to enable SSH; null uses SSM
 
 # Environment Configuration
 environment     = "Production"

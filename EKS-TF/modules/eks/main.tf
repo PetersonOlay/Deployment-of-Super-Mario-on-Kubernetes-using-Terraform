@@ -149,8 +149,11 @@ resource "aws_eks_node_group" "eks_node_group" {
   capacity_type  = "ON_DEMAND"
   disk_size      = var.disk_size
 
-  remote_access {
-    ec2_ssh_key = var.ssh_key_name
+  dynamic "remote_access" {
+    for_each = var.ssh_key_name != null ? [1] : []
+    content {
+      ec2_ssh_key = var.ssh_key_name
+    }
   }
 
   update_config {

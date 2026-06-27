@@ -39,8 +39,9 @@ variable "disk_size" {
 }
 
 variable "ssh_key_name" {
-  description = "SSH key pair name for node access"
+  description = "SSH key pair name for node access. Set to null to disable SSH (use SSM instead)."
   type        = string
+  default     = null
 }
 
 variable "environment" {

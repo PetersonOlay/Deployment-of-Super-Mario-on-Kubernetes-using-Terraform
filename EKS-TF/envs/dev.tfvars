@@ -4,7 +4,7 @@
 environment        = "dev"
 cluster_name       = "EKS_MARIO_DEV"
 node_group_name    = "Node-mario-dev"
-ssh_key_name       = "eks-key-dev"
+ssh_key_name       = null  # set to an EC2 key pair name to enable SSH; null uses SSM
 
 # Small sizing for cost control
 instance_types     = ["t3.small"]
