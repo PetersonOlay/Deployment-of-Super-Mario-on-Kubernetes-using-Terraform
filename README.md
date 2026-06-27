@@ -20,6 +20,7 @@ This project provisions an **EKS cluster** on AWS and deploys the **Super Mario 
 - ✅ **AWS Load Balancer Controller** IAM policy created via Terraform
 - ✅ **CloudWatch logging** and monitoring
 - ✅ **Horizontal Pod Autoscaling** for automatic scaling
+- ✅ **Dedicated Kubernetes namespace** (`previselab`) for all resources
 - ✅ **Network policies** for enhanced security
 - ✅ **ServiceMonitor** for Prometheus integration
 - ✅ **Health checks** and rolling updates
@@ -57,6 +58,7 @@ This project provisions an **EKS cluster** on AWS and deploys the **Super Mario 
 │   │       ├── outputs.tf
 │   │       └── lb_controller_policy.json
 │   └── 📂 k8s/                        # Kubernetes manifests
+│       ├── namespace.yaml             # previselab namespace definition
 │       ├── deployment.yaml            # Kubernetes Deployment for Super Mario
 │       ├── service.yaml               # Kubernetes Service (NLB, internet-facing)
 │       ├── horizontal-pod-autoscaler.yaml # HPA for automatic scaling
@@ -75,7 +77,7 @@ Before proceeding, ensure you have the following installed:
 - ✅ **AWS CLI** (Configured with proper credentials)  
 - ✅ **kubectl** (For managing Kubernetes resources)  
 - ✅ **Docker** (For containerization)  
-- ✅ **AWS Key Pair** named `eks-key` (for node access; `eks-key-dev` / `eks-key-stg` for other envs)
+- ✅ **AWS Key Pair** (optional — set `ssh_key_name` in the relevant tfvars to enable SSH; nodes default to SSM access)
 
 ---
 
@@ -101,20 +103,20 @@ terraform init
 terraform apply -auto-approve
 ```
 
-After apply, note the `terraform_s3_backend_policy_arn` output and attach it to the IAM user/role used by the `previsetech` AWS profile:
+After apply, note the `terraform_s3_backend_policy_arn` output and attach it to the IAM user/role used by the `previse` AWS profile:
 
 ```bash
 # If using an IAM user:
 aws iam attach-user-policy \
   --user-name <your-iam-user> \
   --policy-arn <terraform_s3_backend_policy_arn output> \
-  --profile previsetech
+  --profile previse
 
 # If using an IAM role:
 aws iam attach-role-policy \
   --role-name <your-iam-role> \
   --policy-arn <terraform_s3_backend_policy_arn output> \
-  --profile previsetech
+  --profile previse
 ```
 
 ### **3️⃣ Initialize & Apply Terraform**  
@@ -140,22 +142,24 @@ terraform apply -var-file=envs/prd.tfvars -auto-approve
 ### **4️⃣ Configure Kubernetes Context**  
 
 ```bash
-aws eks update-kubeconfig --name EKS_MARIO --region us-east-1
+aws eks update-kubeconfig --name EKS_MARIO --region us-east-1 --profile previse
 # For dev: --name EKS_MARIO_DEV
 # For stg: --name EKS_MARIO_STG
 ```
 
 ### **5️⃣ Deploy Super Mario Application**  
 
-Apply all core manifests at once:
+Create the namespace first, then apply all manifests:
 
 ```bash
+kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/
 ```
 
 Or apply individually:
 
 ```bash
+kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/horizontal-pod-autoscaler.yaml
@@ -169,7 +173,7 @@ kubectl apply -f k8s/service-monitor.yaml
 Once deployed, get the external LoadBalancer URL:  
 
 ```bash
-kubectl get services mario-service
+kubectl get services mario-service -n previselab
 ```
 
 Access **Super Mario** in your browser using the displayed URL.
@@ -178,19 +182,19 @@ Access **Super Mario** in your browser using the displayed URL.
 
 ```bash
 # Check deployment status
-kubectl get deployment mario-deployment
+kubectl get deployment mario-deployment -n previselab
 
 # Check pods
-kubectl get pods -l app=mario
+kubectl get pods -l app=mario -n previselab
 
 # Check HPA status
-kubectl get hpa mario-hpa
+kubectl get hpa mario-hpa -n previselab
 
 # Check logs
-kubectl logs -l app=mario --tail=50
+kubectl logs -l app=mario -n previselab --tail=50
 
 # Check autoscaling events
-kubectl describe hpa mario-hpa
+kubectl describe hpa mario-hpa -n previselab
 ```
 
 ### **8️⃣ Teardown (Destroy Infrastructure)**
@@ -202,7 +206,7 @@ kubectl describe hpa mario-hpa
 > `DependencyViolation` error.
 
 ```bash
-kubectl delete svc --all -n default
+kubectl delete svc --all -n previselab
 # wait ~30s for the ELB to drain, then:
 terraform destroy -var-file=envs/dev.tfvars
 ```
@@ -261,11 +265,12 @@ terraform destroy -var-file=envs/dev.tfvars
 ### **Node Group**
 - **Instance**: t3.medium (prd/stg), t3.small (dev)
 - **Scaling**: 1–4 nodes (prd), 1–2 (dev)
-- **AMI**: AL2_x86_64, ON_DEMAND capacity
+- **AMI**: AL2023_x86_64_STANDARD, ON_DEMAND capacity
 - **Storage**: 30 GiB (prd/stg), 20 GiB (dev)
 
 ### **Kubernetes Resources** (`k8s/`)
-- **Manifests**: `deployment.yaml`, `service.yaml`, `horizontal-pod-autoscaler.yaml`, `network-policy.yaml`, `service-monitor.yaml`
+- **Namespace**: `previselab` — all resources are scoped to this namespace
+- **Manifests**: `namespace.yaml`, `deployment.yaml`, `service.yaml`, `horizontal-pod-autoscaler.yaml`, `network-policy.yaml`, `service-monitor.yaml`
 - **Replicas**: 3 pods with auto-scaling up to 10
 - **Resources**: CPU requests 100m, limits 500m; Memory requests 128Mi, limits 512Mi
 - **Health Checks**: Liveness, readiness, and startup probes
