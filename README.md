@@ -240,7 +240,7 @@ kubectl describe hpa mario-hpa
 - **Security**: Security contexts with non-root user
 
 ### **State Management**
-- **Backend**: S3 (`mario12bucket`, `eks/terraform.tfstate`)
+- **Backend**: S3 (`mario-12-bucket-tf-state-shared`, `eks/terraform.tfstate`)
 - **Locking**: S3 native `use_lockfile = true` (Terraform 1.10+)
 - **Encryption**: AES-256 server-side encryption
 - **Bucket provisioning**: managed by `bootstrap/` (run once before `EKS-TF/`)

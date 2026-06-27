@@ -1,7 +1,7 @@
 variable "bucket_name" {
   description = "Name of the S3 bucket for Terraform state"
   type        = string
-  default     = "mario12bucket"
+  default     = "mario-12-bucket-tf-state-shared"
 }
 
 variable "aws_region" {

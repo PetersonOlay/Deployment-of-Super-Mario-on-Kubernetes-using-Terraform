@@ -1,5 +1,5 @@
-bucket_name  = "mario12bucket"
+bucket_name  = "mario-12-bucket-tf-state-shared"
 aws_region   = "us-east-1"
-aws_profile  = "previsetech"
+aws_profile  = "previse"
 environment  = "shared"
 project_name = "Super Mario EKS Deployment"
