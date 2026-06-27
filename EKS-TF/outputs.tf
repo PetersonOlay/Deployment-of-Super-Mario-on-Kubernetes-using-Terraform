@@ -66,7 +66,7 @@ output "deployment_commands" {
     "kubectl apply -f k8s/service.yaml",
     "kubectl apply -f k8s/horizontal-pod-autoscaler.yaml",
     "kubectl apply -f k8s/network-policy.yaml",
-    "# Optional: kubectl apply -f k8s/service-monitor.yaml"
+    "# Optional (requires Prometheus Operator): kubectl apply -f k8s/service-monitor.yaml"
   ]
 }
 

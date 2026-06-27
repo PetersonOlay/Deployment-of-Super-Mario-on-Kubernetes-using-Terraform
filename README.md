@@ -63,7 +63,7 @@ This project provisions an **EKS cluster** on AWS and deploys the **Super Mario 
 │       ├── service.yaml               # Kubernetes Service (NLB, internet-facing)
 │       ├── horizontal-pod-autoscaler.yaml # HPA for automatic scaling
 │       ├── network-policy.yaml        # Network security policies
-│       └── service-monitor.yaml      # Prometheus monitoring configuration
+│       └── service-monitor.yaml      # Prometheus ServiceMonitor (optional — requires Prometheus Operator)
 └── 📄 README.md                       # Project documentation
 ```
 
@@ -149,14 +149,7 @@ aws eks update-kubeconfig --name EKS_MARIO --region us-east-1 --profile previse
 
 ### **5️⃣ Deploy Super Mario Application**  
 
-Create the namespace first, then apply all manifests:
-
-```bash
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/
-```
-
-Or apply individually:
+Apply the manifests in order:
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
@@ -164,9 +157,16 @@ kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/horizontal-pod-autoscaler.yaml
 kubectl apply -f k8s/network-policy.yaml
-# Optional: Apply if you have Prometheus installed
-kubectl apply -f k8s/service-monitor.yaml
 ```
+
+> **Note:** `service-monitor.yaml` requires the **Prometheus Operator** CRD (`monitoring.coreos.com/v1`).
+> Install it first, then apply:
+>
+> ```bash
+> helm install prometheus prometheus-community/kube-prometheus-stack \
+>   -n monitoring --create-namespace
+> kubectl apply -f k8s/service-monitor.yaml
+> ```
 
 ### **6️⃣ Access the Application**  
 

@@ -2,7 +2,6 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: mario-service-monitor
-  namespace: previselab
   labels:
     app: mario
     release: prometheus
@@ -14,7 +13,7 @@ spec:
       app: mario
   namespaceSelector:
     matchNames:
-    - previselab
+    - default
   endpoints:
   - port: http
     path: /
