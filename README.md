@@ -193,6 +193,41 @@ kubectl logs -l app=mario --tail=50
 kubectl describe hpa mario-hpa
 ```
 
+### **8️⃣ Teardown (Destroy Infrastructure)**
+
+> **Important:** Always delete Kubernetes `LoadBalancer` services before running `terraform destroy`.
+> When a Kubernetes Service of type `LoadBalancer` is deployed, AWS creates an ELB **outside of
+> Terraform's state**. On destroy, Terraform deletes the VPC before Kubernetes cleans up the
+> ELB's ENIs — leaving the Internet Gateway attached and blocking VPC deletion with a
+> `DependencyViolation` error.
+
+```bash
+# Step 1 — remove LoadBalancer services so AWS cleans up the ELB and its ENIs
+kubectl delete svc --all -n default
+
+# Step 2 — wait ~30s for the ELB to fully drain and its ENIs to be released
+# Step 3 — then destroy the Terraform-managed infrastructure
+terraform destroy -var-file=envs/dev.tfvars   # or stg / prd
+```
+
+If you already hit the `DependencyViolation` error, manually detach and delete the orphaned
+Internet Gateway via the AWS Console or CLI, then re-run `terraform destroy`:
+
+```bash
+# Find the IGW still attached to the VPC
+aws ec2 describe-internet-gateways \
+  --filters "Name=attachment.vpc-id,Values=<vpc-id>" \
+  --query "InternetGateways[*].InternetGatewayId" \
+  --output text --profile previse
+
+# Detach and delete it
+aws ec2 detach-internet-gateway --internet-gateway-id <igw-id> --vpc-id <vpc-id> --profile previse
+aws ec2 delete-internet-gateway --internet-gateway-id <igw-id> --profile previse
+
+# Now retry destroy
+terraform destroy -var-file=envs/dev.tfvars
+```
+
 ---
 
 ## **🎯 Project Highlights**
