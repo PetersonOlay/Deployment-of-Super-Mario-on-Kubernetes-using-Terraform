@@ -1,89 +1,93 @@
-# **🚀 Deploying Super Mario on AWS EKS using Terraform**  
+# 🚀 Deploying Super Mario on AWS EKS using Terraform
 
-Super Mario is a legendary game we all cherish! In this project, we will deploy **Super Mario** on **Amazon EKS (Elastic Kubernetes Service)** using **Terraform** and manage infrastructure with AWS resources.  
+This project provisions a production-grade **Amazon EKS** cluster on AWS and deploys the Super Mario game using **Terraform** and **Kubernetes** manifests.
 
-![Super Mario](https://imgur.com/Njqsei9.gif)  
-
----
-
-## 📌 **Project Overview**
-
-This project provisions an **EKS cluster** on AWS and deploys the **Super Mario game** using **Terraform** and **Kubernetes manifests**. The deployment includes:
-
-- ✅ **Amazon EKS Cluster** (v1.36) with dual authentication (API + ConfigMap)
-- ✅ **Terraform Infrastructure as Code** (v1.10+)
-- ✅ **Custom multi-AZ VPC** (`previselab-vpc`) with public/private subnet separation
-- ✅ **Modular Terraform structure** — separate VPC and EKS modules
-- ✅ **Multi-environment support** — dev / stg / prd via `envs/` tfvars files
-- ✅ **AWS S3 Backend** with native state locking (`use_lockfile`) — no DynamoDB required
-- ✅ **IAM roles & policies** with least-privilege access
-- ✅ **AWS Load Balancer Controller** IAM policy created via Terraform
-- ✅ **CloudWatch logging** and monitoring
-- ✅ **Horizontal Pod Autoscaling** for automatic scaling
-- ✅ **Dedicated Kubernetes namespace** (`previselab`) for all resources
-- ✅ **Network policies** for enhanced security
-- ✅ **ServiceMonitor** for Prometheus integration
-- ✅ **Health checks** and rolling updates
+![Super Mario](https://imgur.com/Njqsei9.gif)
 
 ---
 
-## **📁 Project Structure**  
+## Project Overview
+
+The deployment includes:
+
+- Amazon EKS Cluster (v1.36) with dual authentication (API + ConfigMap)
+- Terraform Infrastructure as Code (v1.10+)
+- Custom multi-AZ VPC (`previselab-vpc`) with public/private subnet separation
+- Modular Terraform structure — separate VPC and EKS modules
+- Multi-environment support — dev / stg / prd via `envs/` tfvars files
+- AWS S3 backend with native state locking (`use_lockfile`) — no DynamoDB required
+- IAM roles and policies with least-privilege access
+- AWS Load Balancer Controller IAM policy created via Terraform
+- CloudWatch logging and monitoring
+- Horizontal Pod Autoscaling for automatic scaling
+- Dedicated Kubernetes namespace (`previselab`) for all resources
+- Network policies for enhanced security
+- ServiceMonitor for Prometheus integration
+- Health checks and rolling updates
+
+---
+
+## Project Structure
 
 ```bash
-📂 DEPLOYMENT-OF-SUPER-MARIO
-├── 📂 bootstrap                       # Run once to create S3 bucket + IAM policy
+DEPLOYMENT-OF-SUPER-MARIO/
+├── bootstrap/                         # Run once to create S3 bucket + IAM policy
 │   ├── main.tf                        # S3 bucket, versioning, encryption, IAM policy
 │   ├── variables.tf
 │   ├── outputs.tf
 │   └── terraform.tfvars
-├── 📂 EKS-TF                          # Terraform configuration
+├── EKS-TF/                            # Main Terraform configuration
 │   ├── backend.tf                     # S3 backend with native use_lockfile locking
 │   ├── provider.tf                    # AWS/Kubernetes provider configuration
 │   ├── main.tf                        # Root module — calls vpc and eks modules
 │   ├── variables.tf                   # Input variable definitions
 │   ├── outputs.tf                     # Output values after deployment
 │   ├── terraform.tfvars               # Production baseline defaults
-│   ├── 📂 envs/
+│   ├── envs/
 │   │   ├── dev.tfvars                 # Development environment overrides
 │   │   ├── stg.tfvars                 # Staging environment overrides
 │   │   └── prd.tfvars                 # Production environment overrides
-│   ├── 📂 modules/
-│   │   ├── 📂 vpc/                    # Custom VPC module (previselab-vpc)
+│   ├── modules/
+│   │   ├── vpc/                       # Custom VPC module (previselab-vpc)
 │   │   │   ├── main.tf
 │   │   │   ├── variables.tf
 │   │   │   └── outputs.tf
-│   │   └── 📂 eks/                    # EKS cluster + node group module
+│   │   └── eks/                       # EKS cluster + node group module
 │   │       ├── main.tf
 │   │       ├── variables.tf
 │   │       ├── outputs.tf
 │   │       └── lb_controller_policy.json
-│   └── 📂 k8s/                        # Kubernetes manifests
+│   └── k8s/                           # Kubernetes manifests
 │       ├── namespace.yaml             # previselab namespace definition
 │       ├── deployment.yaml            # Kubernetes Deployment for Super Mario
 │       ├── service.yaml               # Kubernetes Service (NLB, internet-facing)
-│       ├── horizontal-pod-autoscaler.yaml # HPA for automatic scaling
+│       ├── configmap.yaml             # Default ConfigMap (NODE_ENV)
+│       ├── horizontal-pod-autoscaler.yaml
 │       ├── network-policy.yaml        # Network security policies
-│       └── service-monitor.yaml      # Prometheus ServiceMonitor (optional — requires Prometheus Operator)
-└── 📄 README.md                       # Project documentation
+│       ├── service-monitor.yaml       # Prometheus ServiceMonitor (optional)
+│       └── envs/
+│           ├── dev-configmap.yaml
+│           ├── stg-configmap.yaml
+│           └── prd-configmap.yaml
+└── README.md
 ```
 
 ---
 
-## **📌 Prerequisites**  
+## Prerequisites
 
 Before proceeding, ensure you have the following installed:
 
-- ✅ **Terraform** (>=1.10.0)  
-- ✅ **AWS CLI** (Configured with proper credentials)  
-- ✅ **kubectl** (For managing Kubernetes resources)  
-- ✅ **Docker** (For containerization)  
-- ✅ **AWS Key Pair** (optional — set `ssh_key_name` in the relevant tfvars to enable SSH; nodes default to SSM access)
+- **Terraform** >= 1.10.0
+- **AWS CLI** configured with the `previse` profile
+- **kubectl** for managing Kubernetes resources
+- **AWS Key Pair** (optional — set `ssh_key_name` in the relevant tfvars to enable SSH; nodes default to SSM access)
 
 ---
 
-## **🛠️ Setup & Deployment**  
+## Setup & Deployment
 
-### **1️⃣ Choose Your Environment**
+### Step 1 — Choose Your Environment
 
 The project supports three environments, each with its own VPC CIDR space and sizing:
 
@@ -93,9 +97,9 @@ The project supports three environments, each with its own VPC CIDR space and si
 | stg | EKS_MARIO_STG | 10.20.0.0/16 | t3.medium | 1–3 |
 | prd | EKS_MARIO | 10.30.0.0/16 | t3.medium | 1–4 |
 
-### **2️⃣ Bootstrap — Create S3 State Bucket (first-time only)**
+### Step 2 — Bootstrap (first-time only)
 
-Run this **once** before the main Terraform deployment to create the S3 bucket and IAM policy used by the backend:
+Run this once before the main Terraform deployment to create the S3 bucket and IAM policy used by the backend:
 
 ```bash
 cd bootstrap
@@ -119,7 +123,7 @@ aws iam attach-role-policy \
   --profile previse
 ```
 
-### **3️⃣ Initialize & Apply Terraform**  
+### Step 3 — Initialize & Apply Terraform
 
 ```bash
 cd EKS-TF
@@ -139,7 +143,7 @@ terraform plan  -var-file=envs/prd.tfvars
 terraform apply -var-file=envs/prd.tfvars -auto-approve
 ```
 
-### **4️⃣ Configure Kubernetes Context**  
+### Step 4 — Configure Kubernetes Context
 
 ```bash
 aws eks update-kubeconfig --name EKS_MARIO --region us-east-1 --profile previse
@@ -147,19 +151,18 @@ aws eks update-kubeconfig --name EKS_MARIO --region us-east-1 --profile previse
 # For stg: --name EKS_MARIO_STG
 ```
 
-### **5️⃣ Deploy Super Mario Application**  
+### Step 5 — Deploy Super Mario Application
 
-Apply the manifests in order. Apply the environment-specific ConfigMap first so `NODE_ENV` is set correctly before the pods start:
+Apply the environment-specific ConfigMap first so `NODE_ENV` is set correctly before the pods start:
 
 ```bash
 kubectl apply -f k8s/namespace.yaml
 
-# Apply the ConfigMap for your target environment (sets NODE_ENV dynamically)
+# Apply the ConfigMap for your target environment
 kubectl apply -f k8s/envs/dev-configmap.yaml   # development
 # kubectl apply -f k8s/envs/stg-configmap.yaml # staging
 # kubectl apply -f k8s/envs/prd-configmap.yaml # production
 
-kubectl apply -f k8s/configmap.yaml            # only needed if skipping env override above
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/horizontal-pod-autoscaler.yaml
@@ -175,17 +178,17 @@ kubectl apply -f k8s/network-policy.yaml
 > kubectl apply -f k8s/service-monitor.yaml
 > ```
 
-### **6️⃣ Access the Application**  
+### Step 6 — Access the Application
 
-Once deployed, get the external LoadBalancer URL:  
+Once deployed, get the external LoadBalancer URL:
 
 ```bash
 kubectl get services mario-service -n previselab
 ```
 
-Access **Super Mario** in your browser using the displayed URL.
+Open the displayed URL in your browser to play Super Mario.
 
-### **7️⃣ Monitor the Deployment**  
+### Step 7 — Monitor the Deployment
 
 ```bash
 # Check deployment status
@@ -204,17 +207,17 @@ kubectl logs -l app=mario -n previselab --tail=50
 kubectl describe hpa mario-hpa -n previselab
 ```
 
-### **8️⃣ Teardown (Destroy Infrastructure)**
+### Step 8 — Teardown
 
 > **Important:** Always delete Kubernetes `LoadBalancer` services before running `terraform destroy`.
-> When a Kubernetes Service of type `LoadBalancer` is deployed, AWS creates an ELB **outside of
-> Terraform's state**. On destroy, Terraform deletes the VPC before Kubernetes cleans up the
+> When a Kubernetes Service of type `LoadBalancer` is deployed, AWS creates an ELB outside of
+> Terraform's state. On destroy, Terraform deletes the VPC before Kubernetes cleans up the
 > ELB's ENIs — leaving the Internet Gateway attached and blocking VPC deletion with a
 > `DependencyViolation` error.
 
 ```bash
 kubectl delete svc --all -n previselab
-# wait ~30s for the ELB to drain, then:
+# Wait ~30s for the ELB to drain, then:
 terraform destroy -var-file=envs/dev.tfvars
 ```
 
@@ -232,13 +235,13 @@ aws ec2 describe-internet-gateways \
 aws ec2 detach-internet-gateway --internet-gateway-id <igw-id> --vpc-id <vpc-id> --profile previse
 aws ec2 delete-internet-gateway --internet-gateway-id <igw-id> --profile previse
 
-# Now retry destroy
+# Retry destroy
 terraform destroy -var-file=envs/dev.tfvars
 ```
 
 ---
 
-## **🔍 Troubleshooting**
+## Troubleshooting
 
 ### IAM principal doesn't have access to Kubernetes objects
 
@@ -258,7 +261,7 @@ aws eks update-kubeconfig --name EKS_MARIO_DEV --region us-east-1 --profile prev
 kubectl get nodes
 ```
 
-If the error persists, the IAM principal needs an EKS access entry. The Terraform EKS module already creates one automatically for the caller identity via `aws_eks_access_entry`. Run `terraform apply` again to ensure it's been applied.
+If the error persists, the IAM principal needs an EKS access entry. The Terraform EKS module already creates one automatically for the caller identity via `aws_eks_access_entry`. Run `terraform apply` again to ensure it has been applied.
 
 ---
 
@@ -329,104 +332,89 @@ kubectl apply -f k8s/service-monitor.yaml
 
 ---
 
-## **🎯 Project Highlights**
+## Project Highlights
 
-- **AWS EKS v1.36**: Managed Kubernetes with `API_AND_CONFIG_MAP` dual authentication
-- **Terraform v1.10+**: S3 native state locking (`use_lockfile = true`) — no DynamoDB table needed
-- **Custom VPC (`previselab-vpc`)**: Public + private subnets across 3 AZs; NAT Gateway per AZ for HA
-- **Private node placement**: EKS nodes in private subnets; NLB in public subnets
-- **Modular IaC**: Separate `modules/vpc` and `modules/eks` for reusability
-- **Multi-environment**: dev / stg / prd with isolated CIDR spaces via `envs/` tfvars
-- **LB Controller IAM policy**: Created directly in Terraform (no manual pre-requisite)
-- **CloudWatch Logging**: Centralized control plane log collection
-- **Auto Scaling**: Horizontal Pod Autoscaler for dynamic resource management
-- **Network Security**: Network policies and security group controls
-- **Monitoring Ready**: Prometheus integration via ServiceMonitor
+- **AWS EKS v1.36** — Managed Kubernetes with `API_AND_CONFIG_MAP` dual authentication
+- **Terraform v1.10+** — S3 native state locking (`use_lockfile = true`) — no DynamoDB table needed
+- **Custom VPC (`previselab-vpc`)** — Public + private subnets across 3 AZs; NAT Gateway per AZ for HA
+- **Private node placement** — EKS nodes in private subnets; NLB in public subnets
+- **Modular IaC** — Separate `modules/vpc` and `modules/eks` for reusability
+- **Multi-environment** — dev / stg / prd with isolated CIDR spaces via `envs/` tfvars
+- **LB Controller IAM policy** — Created directly in Terraform, no manual prerequisite
+- **CloudWatch Logging** — Centralized control plane log collection
+- **Auto Scaling** — Horizontal Pod Autoscaler for dynamic resource management
+- **Network Security** — Network policies and security group controls
+- **Monitoring Ready** — Prometheus integration via ServiceMonitor
 
 ---
 
-## **🔧 Configuration Details**
+## Configuration Details
 
-### **VPC — previselab-vpc**
+### VPC — previselab-vpc
+
 - **CIDR**: per environment (dev: `10.10.0.0/16`, stg: `10.20.0.0/16`, prd: `10.30.0.0/16`)
 - **Subnets**: 3 public + 3 private, one per AZ (`us-east-1a/b/c`)
 - **NAT Gateways**: one per AZ for high-availability egress from private subnets
 - **EKS subnet tags**: `kubernetes.io/role/elb` (public) and `kubernetes.io/role/internal-elb` (private)
 
-### **EKS Cluster Configuration**
+### EKS Cluster
+
 - **Version**: 1.36
 - **Authentication**: `API_AND_CONFIG_MAP` — supports both EKS Access Entries API and `aws-auth` ConfigMap
 - **Node placement**: private subnets only
 - **Endpoint access**: private + public (restrict `public_access_cidrs` in production)
 - **Logging**: all control plane log types enabled (api, audit, authenticator, controllerManager, scheduler)
 
-### **Node Group**
+### Node Group
+
 - **Instance**: t3.medium (prd/stg), t3.small (dev)
 - **Scaling**: 1–4 nodes (prd), 1–2 (dev)
 - **AMI**: AL2023_x86_64_STANDARD, ON_DEMAND capacity
 - **Storage**: 30 GiB (prd/stg), 20 GiB (dev)
 
-### **Kubernetes Resources** (`k8s/`)
+### Kubernetes Resources (`k8s/`)
+
 - **Namespace**: `previselab` — all resources are scoped to this namespace
-- **Manifests**: `namespace.yaml`, `deployment.yaml`, `service.yaml`, `horizontal-pod-autoscaler.yaml`, `network-policy.yaml`, `service-monitor.yaml`
 - **Replicas**: 3 pods with auto-scaling up to 10
 - **Resources**: CPU requests 100m, limits 500m; Memory requests 128Mi, limits 512Mi
-- **Health Checks**: Liveness, readiness, and startup probes
-- **Security**: Security contexts with non-root user
+- **Health Checks**: Liveness, readiness, and startup probes on port 80
+- **Security**: Security contexts with required nginx capabilities (`NET_BIND_SERVICE`, `CHOWN`, `SETGID`, `SETUID`)
 
-### **State Management**
-- **Backend**: S3 (`mario-12-bucket-tf-state-shared`, `eks/terraform.tfstate`)
+### State Management
+
+- **Backend**: S3 (`mario-12-bucket-tf-state-shared`, key: `eks/terraform.tfstate`)
 - **Locking**: S3 native `use_lockfile = true` (Terraform 1.10+)
 - **Encryption**: AES-256 server-side encryption
 - **Bucket provisioning**: managed by `bootstrap/` (run once before `EKS-TF/`)
 
 ---
 
-## **🔗 Resources & Documentation**
+## Resources
 
-- **Terraform Docs**: [https://developer.hashicorp.com/terraform/docs](https://developer.hashicorp.com/terraform/docs)  
-- **AWS EKS Docs**: [https://docs.aws.amazon.com/eks/latest/userguide](https://docs.aws.amazon.com/eks/latest/userguide)  
-- **Kubernetes Docs**: [https://kubernetes.io/docs/home/](https://kubernetes.io/docs/home/)  
-- **AWS Load Balancer Controller**: [https://kubernetes-sigs.github.io/aws-load-balancer-controller/](https://kubernetes-sigs.github.io/aws-load-balancer-controller/)  
-- **Prometheus Monitoring**: [https://prometheus.io/docs/](https://prometheus.io/docs/)  
-
----
-
-## **📢 Credits & Acknowledgments**  
-
-This project is inspired by the **Super Mario** game, and it demonstrates real-world **DevOps practices** using AWS, Terraform, and Kubernetes.  
-
-👉 **Read the detailed blog here**: [Super Mario EKS Deployment](https://blog.prodevopsguy.xyz/deployment-of-super-mario-on-kubernetes-using-terraform)  
-
-🚀 *Happy Gaming & DevOps-ing!* 🎮
+- [Terraform Documentation](https://developer.hashicorp.com/terraform/docs)
+- [AWS EKS User Guide](https://docs.aws.amazon.com/eks/latest/userguide)
+- [Kubernetes Documentation](https://kubernetes.io/docs/home/)
+- [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/)
+- [Prometheus Monitoring](https://prometheus.io/docs/)
 
 ---
 
-## 🤝 **Contributing**  
+## Contributing
 
-Contributions are welcome! If you'd like to improve this project, feel free to submit a pull request.  
-
----
-
-## **Hit the Star!** ⭐
-
-**If you find this repository helpful and plan to use it for learning, please give it a star. Your support is appreciated!**
+Contributions are welcome. If you'd like to improve this project, feel free to submit a pull request to the [project repository](https://github.com/PetersonOlay/Deployment-of-Super-Mario-on-Kubernetes-using-Terraform).
 
 ---
 
-## 🛠️ **Author & Community**  
+## Hit the Star
 
-This project is crafted by **[PetersonOlay](https://github.com/PetersonOlay)** 💡.  
-I'd love to hear your feedback! Feel free to share your thoughts.  
-
----
-
-### 📧 **Connect with me:**
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5.svg?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/harshhaa-vardhan-reddy) [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/NotHarshhaa)  [![Telegram](https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/prodevopsguy) [![Dev.to](https://img.shields.io/badge/Dev.to-0A0A0A?style=for-the-badge&logo=dev.to&logoColor=white)](https://dev.to/notharshhaa) [![Hashnode](https://img.shields.io/badge/Hashnode-2962FF?style=for-the-badge&logo=hashnode&logoColor=white)](https://hashnode.com/@prodevopsguy)  
+If you find this repository helpful, please give it a [star](https://github.com/PetersonOlay/Deployment-of-Super-Mario-on-Kubernetes-using-Terraform). Your support is appreciated.
 
 ---
 
-### 📢 **Stay Connected**  
+## Author
 
-![Follow Me](https://imgur.com/2j7GSPs.png)
+Built by **[PetersonOlay](https://github.com/PetersonOlay)**.
+
+- GitHub: [github.com/PetersonOlay](https://github.com/PetersonOlay)
+- LinkedIn: [linkedin.com/in/peter-olay-745b05292](https://www.linkedin.com/in/peter-olay-745b05292/)
+- Website: [peterolay.previselab.com](https://peterolay.previselab.com)
